@@ -18,6 +18,7 @@ use solana_program_test::ProgramTest;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signer::Signer;
+use crate::BanksClientError;
 
 use crate::program_test::governance_test::GovernanceTest;
 use crate::program_test::program_test_bench::ProgramTestBench;
@@ -121,7 +122,7 @@ impl GatewayVoterTest {
         &mut self,
         realm_cookie: &RealmCookie,
         gateway_cookie: &GatewayCookie,
-    ) -> Result<RegistrarCookie, TransportError> {
+    ) -> Result<RegistrarCookie, BanksClientError> {
         self.with_registrar_using_ix(realm_cookie, gateway_cookie, NopOverride, None)
             .await
     }
@@ -133,7 +134,7 @@ impl GatewayVoterTest {
         gateway_cookie: &GatewayCookie,
         instruction_override: F,
         signers_override: Option<&[&Keypair]>,
-    ) -> Result<RegistrarCookie, TransportError> {
+    ) -> Result<RegistrarCookie, BanksClientError> {
         let registrar_key =
             get_registrar_address(&realm_cookie.address, &realm_cookie.account.community_mint);
 
@@ -269,7 +270,7 @@ impl GatewayVoterTest {
         &self,
         registrar_cookie: &RegistrarCookie,
         voter_cookie: &WalletCookie,
-    ) -> Result<VoterWeightRecordCookie, TransportError> {
+    ) -> Result<VoterWeightRecordCookie, BanksClientError> {
         self.with_voter_weight_record_using_ix(registrar_cookie, voter_cookie, NopOverride)
             .await
     }
@@ -280,7 +281,7 @@ impl GatewayVoterTest {
         registrar_cookie: &RegistrarCookie,
         voter_cookie: &WalletCookie,
         instruction_override: F,
-    ) -> Result<VoterWeightRecordCookie, TransportError> {
+    ) -> Result<VoterWeightRecordCookie, BanksClientError> {
         let governing_token_owner = voter_cookie.address;
 
         let (voter_weight_record_key, _) = Pubkey::find_program_address(
@@ -344,7 +345,7 @@ impl GatewayVoterTest {
         voter_weight_record_cookie: &mut VoterWeightRecordCookie,
         gateway_token_cookie: &GatewayTokenCookie,
         voter_weight_action: VoterWeightAction,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), BanksClientError> {
         let data = anchor_lang::InstructionData::data(
             &gpl_gateway::instruction::UpdateVoterWeightRecord {
                 voter_weight_action,

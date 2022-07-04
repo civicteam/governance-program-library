@@ -15,10 +15,10 @@ use solana_sdk::{
     signer::Signer,
     system_instruction,
     transaction::Transaction,
-    transport::TransportError,
 };
 
 use borsh::BorshDeserialize;
+use crate::BanksClientError;
 
 use crate::program_test::tools::clone_keypair;
 
@@ -67,7 +67,7 @@ impl ProgramTestBench {
         &self,
         instructions: &[Instruction],
         signers: Option<&[&Keypair]>,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), BanksClientError> {
         let mut context = self.context.borrow_mut();
 
         let mut transaction =
@@ -108,7 +108,7 @@ impl ProgramTestBench {
             .unwrap();
     }
 
-    pub async fn with_mint(&self) -> Result<MintCookie, TransportError> {
+    pub async fn with_mint(&self) -> Result<MintCookie, BanksClientError> {
         let mint_keypair = Keypair::new();
         let mint_authority = Keypair::new();
         let freeze_authority = Keypair::new();
@@ -129,7 +129,7 @@ impl ProgramTestBench {
         mint_keypair: &Keypair,
         mint_authority: &Pubkey,
         freeze_authority: Option<&Pubkey>,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), BanksClientError> {
         let mint_rent = self.rent.minimum_balance(spl_token::state::Mint::LEN);
 
         let instructions = [
@@ -158,7 +158,7 @@ impl ProgramTestBench {
     pub async fn with_token_account(
         &self,
         token_mint: &Pubkey,
-    ) -> Result<TokenAccountCookie, TransportError> {
+    ) -> Result<TokenAccountCookie, BanksClientError> {
         let token_account_keypair = Keypair::new();
         self.create_token_account(&token_account_keypair, token_mint, &self.payer.pubkey())
             .await?;
@@ -174,7 +174,7 @@ impl ProgramTestBench {
         mint_cookie: &MintCookie,
         owner: &Pubkey,
         amount: u64,
-    ) -> Result<TokenAccountCookie, TransportError> {
+    ) -> Result<TokenAccountCookie, BanksClientError> {
         let token_account_keypair = Keypair::new();
 
         self.create_token_account(&token_account_keypair, &mint_cookie.address, owner)
@@ -199,7 +199,7 @@ impl ProgramTestBench {
         token_mint_authority: &Keypair,
         token_account: &Pubkey,
         amount: u64,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), BanksClientError> {
         let mint_instruction = spl_token::instruction::mint_to(
             &spl_token::id(),
             token_mint,
@@ -220,7 +220,7 @@ impl ProgramTestBench {
         token_account_keypair: &Keypair,
         token_mint: &Pubkey,
         owner: &Pubkey,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), BanksClientError> {
         let rent = self
             .context
             .borrow_mut()

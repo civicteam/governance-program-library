@@ -1,8 +1,8 @@
 use std::{str::FromStr, sync::Arc};
 
 use anchor_lang::prelude::Pubkey;
-use solana_program_test::ProgramTest;
-use solana_sdk::{signature::Keypair, signer::Signer, transport::TransportError};
+use solana_program_test::{BanksClientError, ProgramTest};
+use solana_sdk::{signature::Keypair, signer::Signer};
 use spl_governance::{
     instruction::{
         create_governance, create_proposal, create_realm, create_token_owner_record,
@@ -10,7 +10,7 @@ use spl_governance::{
     },
     state::{
         enums::{
-            GovernanceAccountType, MintMaxVoteWeightSource, ProposalState, VoteThresholdPercentage,
+            GovernanceAccountType, MintMaxVoteWeightSource, ProposalState, VoteThreshold,
             VoteTipping,
         },
         governance::get_governance_address,
@@ -83,7 +83,7 @@ impl GovernanceTest {
     }
 
     #[allow(dead_code)]
-    pub async fn with_realm(&mut self) -> Result<RealmCookie, TransportError> {
+    pub async fn with_realm(&mut self) -> Result<RealmCookie, BanksClientError> {
         let realm_authority = Keypair::new();
 
         let community_mint_cookie = self.bench.with_mint().await?;
@@ -146,7 +146,7 @@ impl GovernanceTest {
     pub async fn with_proposal(
         &mut self,
         realm_cookie: &RealmCookie,
-    ) -> Result<ProposalCookie, TransportError> {
+    ) -> Result<ProposalCookie, BanksClientError> {
         let token_account_cookie = self
             .bench
             .with_token_account(&realm_cookie.account.community_mint)
@@ -208,12 +208,13 @@ impl GovernanceTest {
             &realm_cookie.realm_authority.pubkey(),
             None,
             spl_governance::state::governance::GovernanceConfig {
-                vote_threshold_percentage: VoteThresholdPercentage::YesVote(60),
+                community_vote_threshold: VoteThreshold::YesVotePercentage(60),
+                council_vote_threshold: VoteThreshold::Disabled,
+                council_veto_vote_threshold: VoteThreshold::Disabled,
                 min_community_weight_to_create_proposal: 1,
                 min_transaction_hold_up_time: 0,
                 max_voting_time: 600,
                 vote_tipping: VoteTipping::Disabled,
-                proposal_cool_off_time: 0,
                 min_council_weight_to_create_proposal: 1,
             },
         );
@@ -276,7 +277,7 @@ impl GovernanceTest {
             vote_type: spl_governance::state::proposal::VoteType::SingleChoice,
             options: vec![],
             deny_vote_weight: Some(1),
-            veto_vote_weight: None,
+            veto_vote_weight: 0,
             abstain_vote_weight: None,
             start_voting_at: None,
             draft_at: 1,
@@ -289,10 +290,11 @@ impl GovernanceTest {
             execution_flags: spl_governance::state::enums::InstructionExecutionFlags::None,
             max_vote_weight: None,
             max_voting_time: None,
-            vote_threshold_percentage: None,
-            reserved: [0; 64],
             name: String::from("Proposal #1"),
             description_link: String::from("Proposal #1 link"),
+            vote_threshold: None,
+            reserved: [0; 64],
+            reserved1: 0
         };
 
         Ok(ProposalCookie {
@@ -306,7 +308,7 @@ impl GovernanceTest {
         &mut self,
         realm_cookie: &RealmCookie,
         token_owner_cookie: &WalletCookie,
-    ) -> Result<TokenOwnerRecordCookie, TransportError> {
+    ) -> Result<TokenOwnerRecordCookie, BanksClientError> {
         let token_owner_record_key = get_token_owner_record_address(
             &self.program_id,
             &realm_cookie.address,
@@ -352,9 +354,10 @@ impl GovernanceTest {
         proposal_cookie: &ProposalCookie,
         token_owner_cookie: &WalletCookie,
         token_owner_record_cookie: &TokenOwnerRecordCookie,
-    ) -> Result<(), TransportError> {
+    ) -> Result<(), BanksClientError> {
         let relinquish_vote_ix = relinquish_vote(
             &self.program_id,
+            &token_owner_record_cookie.account.realm,
             &proposal_cookie.account.governance,
             &proposal_cookie.address,
             &token_owner_record_cookie.address,

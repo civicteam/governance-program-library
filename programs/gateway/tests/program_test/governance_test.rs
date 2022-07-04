@@ -10,7 +10,7 @@ use spl_governance::{
     },
     state::{
         enums::{
-            GovernanceAccountType, MintMaxVoteWeightSource, ProposalState, VoteThresholdPercentage,
+            GovernanceAccountType, MintMaxVoteWeightSource, ProposalState, VoteThreshold,
             VoteTipping,
         },
         governance::get_governance_address,
@@ -208,12 +208,13 @@ impl GovernanceTest {
             &realm_cookie.realm_authority.pubkey(),
             None,
             spl_governance::state::governance::GovernanceConfig {
-                vote_threshold_percentage: VoteThresholdPercentage::YesVote(60),
+                community_vote_threshold: VoteThreshold::YesVotePercentage(60),
+                council_vote_threshold: VoteThreshold::Disabled,
+                council_veto_vote_threshold: VoteThreshold::Disabled,
                 min_community_weight_to_create_proposal: 1,
                 min_transaction_hold_up_time: 0,
                 max_voting_time: 600,
                 vote_tipping: VoteTipping::Disabled,
-                proposal_cool_off_time: 0,
                 min_council_weight_to_create_proposal: 1,
             },
         );
@@ -276,7 +277,7 @@ impl GovernanceTest {
             vote_type: spl_governance::state::proposal::VoteType::SingleChoice,
             options: vec![],
             deny_vote_weight: Some(1),
-            veto_vote_weight: None,
+            veto_vote_weight: 0,
             abstain_vote_weight: None,
             start_voting_at: None,
             draft_at: 1,
@@ -289,10 +290,11 @@ impl GovernanceTest {
             execution_flags: spl_governance::state::enums::InstructionExecutionFlags::None,
             max_vote_weight: None,
             max_voting_time: None,
-            vote_threshold_percentage: None,
-            reserved: [0; 64],
+            vote_threshold: None,
             name: String::from("Proposal #1"),
             description_link: String::from("Proposal #1 link"),
+            reserved: [0; 64],
+            reserved1: 0
         };
 
         Ok(ProposalCookie {
@@ -355,6 +357,7 @@ impl GovernanceTest {
     ) -> Result<(), TransportError> {
         let relinquish_vote_ix = relinquish_vote(
             &self.program_id,
+            &token_owner_record_cookie.account.realm,
             &proposal_cookie.account.governance,
             &proposal_cookie.address,
             &token_owner_record_cookie.address,
