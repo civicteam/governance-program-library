@@ -58,7 +58,7 @@ pub fn update_voter_weight_record(ctx: Context<UpdateVoterWeightRecord>) -> Resu
     let coefficients = &ctx.accounts.registrar.quadratic_coefficients;
 
     let output_voter_weight =
-        convert_vote(input_voter_weight_record.get_voter_weight(), coefficients) as u64;
+        convert_vote(input_voter_weight_record.get_voter_weight(), coefficients);
     msg!(
         "input weight: {}. output weight {}. coefficients: {:?}",
         input_voter_weight_record.get_voter_weight(),

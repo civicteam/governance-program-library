@@ -27,6 +27,7 @@ itertools = "0.12.0"
 num = "0.4"
 num-derive = "0.4.1"
 num-traits = "0.2"
+rug = "1.16"
 solana-program = "1.18.18"
 spl-governance = { version = "4.0", features = ["no-entrypoint"] }
 spl-governance-tools=  "0.1.4"
